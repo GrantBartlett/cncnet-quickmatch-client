@@ -31,7 +31,7 @@ public class CnCNetAPI
     public NetworkCredential Credentials { set; get; }
     public List<string> Usernames { set; get; }
 
-    private const string API_URL = "http://cncnet-api.dev/api/v1";
+    private const string API_URL = "https://staging.cnc-comm.com/api/v1";
     private const string API_AUTH_URL = "/auth/token";
     private const string API_ACCOUNT_URL = "/user/account";
     private const string API_GAME_RESULT_URL = "/result";
