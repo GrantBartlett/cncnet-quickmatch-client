@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CnCNetServices;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -28,46 +29,48 @@ namespace cncnet_quickmatch_client
             InitializeComponent();
         }
 
-        public async void SendResultClicked(object sender, EventArgs e)
+        public void SendResultClicked(object sender, EventArgs e)
         {
-            Debug.Print("QuickMatchClient ** SendResultClicked");
-            if (username == null || game == null)
+            if (CnCNetAPI.Instance != null && CnCNetAPI.Instance.AccessToken.Length > 0)
             {
-                MessageBox.Show("Select a game or username");
-                return;
-            }
-            api.OnGameResultSuccess += onGameResultSuccess;
-            api.OnGameResultError += onGameResultError;
+                Console.Write("Sending");
 
-            await api.SendGameResult(game, username);
+                CnCNetAPI.Instance.OnGameResultError += onGameResultError;
+                CnCNetAPI.Instance.OnGameResultSuccess += onGameResultSuccess;
+                CnCNetAPI.Instance.SendGameResult(game, username);
+            }
         }
 
         private void onGameResultError(object sender, CnCNetEventGameResultError e)
         {
-            api.OnGameResultSuccess -= onGameResultSuccess;
-            api.OnGameResultError -= onGameResultError;
+            Console.Write("onGameResultError: " + e.Response.ToString());
+
+            CnCNetAPI.Instance.OnGameResultSuccess -= onGameResultSuccess;
+            CnCNetAPI.Instance.OnGameResultError -= onGameResultError;
             tbLog.Text = e.Response.ToString();
         }
 
         private void onGameResultSuccess(object sender, CnCNetEventGameResultSuccess e)
         {
-            api.OnGameResultSuccess -= onGameResultSuccess;
-            api.OnGameResultError -= onGameResultError;
+            Console.Write("onGameResultSuccess: " + e.Response.ToString());
+
+            CnCNetAPI.Instance.OnGameResultSuccess -= onGameResultSuccess;
+            CnCNetAPI.Instance.OnGameResultError -= onGameResultError;
             tbLog.Text = e.Response.ToString();
         }
 
         public void LoginClicked(object sender, EventArgs e)
         {
-            api.Credentials = new NetworkCredential(tbUsername.Text, tbUserPassword.Text);
-            api.OnUserLoginSuccess += onUserLoginSuccess;
-            api.OnUserLoginError += onUserLoginError;
-            api.Login();
+            CnCNetAPI.Instance.Credentials = new NetworkCredential(tbUsername.Text, tbUserPassword.Text);
+            CnCNetAPI.Instance.OnUserLoginSuccess += onUserLoginSuccess;
+            CnCNetAPI.Instance.OnUserLoginError += onUserLoginError;
+            CnCNetAPI.Instance.Login();
         }
 
         private void onUserLoginError(object sender, CnCNetEventUserLoginError e)
         {
-            api.OnUserLoginSuccess -= onUserLoginSuccess;
-            api.OnUserLoginError -= onUserLoginError;
+            CnCNetAPI.Instance.OnUserLoginSuccess -= onUserLoginSuccess;
+            CnCNetAPI.Instance.OnUserLoginError -= onUserLoginError;
 
             tbUsername.Enabled = true;
             tbUserPassword.Enabled = true;
@@ -85,22 +88,23 @@ namespace cncnet_quickmatch_client
             tbUserPassword.Enabled = false;
 
             Debug.Print("QuickMatchClient ** onUserLoginSuccess: " + e.AccessToken);
+            CnCNetAPI.Instance.AccessToken = e.AccessToken;
 
             onGetUsernames();
         }
 
         private void onGetUsernames()
         {
-            if (api != null)
+            if (CnCNetAPI.Instance != null)
             {
-                api.OnUsernamesSuccess += onUsernamesSuccess;
-                api.GetUsernames();
+                CnCNetAPI.Instance.OnUsernamesSuccess += onUsernamesSuccess;
+                CnCNetAPI.Instance.GetUsernames();
             }
         }
 
         private void onUsernamesSuccess(object sender, CnCNetEventUsernamesSuccess e)
         {
-            api.OnUsernamesSuccess -= onUsernamesSuccess;
+            CnCNetAPI.Instance.OnUsernamesSuccess -= onUsernamesSuccess;
 
             lbUsernames.Items.Clear();
 

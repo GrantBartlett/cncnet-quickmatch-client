@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.IO;
-using System.Diagnostics;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Net.Http.Headers;
+using RestSharp;
+
 
 struct GameResultField
 {
@@ -127,38 +126,29 @@ class GameResult
         File.WriteAllBytes(filePath, GetBytes());
     }
 
-    // TODO - Add Events & Tidy 
-    public async Task<string> UploadToServer(string address, string accessToken)
+    public string UploadToServer(string address, string accessToken)
     {
-        try
+        var client = new RestClient(address);
+        Console.Write(client);
+
+        var request = new RestRequest(Method.POST);
+        Console.Write(request);
+
+        request.AddHeader("Authorization", "Bearer:" + accessToken);
+        request.AddFile("file", GetBytes(), "stats.dmp");
+
+        IRestResponse response = client.Execute(request);
+
+        if (response.StatusCode == HttpStatusCode.OK)
         {
-            var wc = new WebClient();
-
-            HttpClient httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "Bearer:" + accessToken);
-
-            MultipartFormDataContent form = new MultipartFormDataContent();
-            form.Add(new ByteArrayContent(GetBytes(), 0, GetBytes().Length), "file", "stats.dmp");
-
-            HttpResponseMessage response = await httpClient.PostAsync(address, form);
-
-            if (response.ReasonPhrase.Length > 0)
-            {
-                OnGameResultFailed?.Invoke(this, new CnCNetEventGameResultError(response.ReasonPhrase));
-            }
-
-            response.EnsureSuccessStatusCode();
-            httpClient.Dispose();
-
-            OnGameResultComplete?.Invoke(this, new CnCNetEventGameResultSuccess(response.Content.ReadAsStringAsync().Result));
-            return response.Content.ReadAsStringAsync().Result;
+            OnGameResultComplete?.Invoke(this, new CnCNetEventGameResultSuccess(response.Content));
         }
-        catch(Exception ex)
+        else
         {
-            Console.WriteLine("EX: " + ex.Message);
-            OnGameResultFailed?.Invoke(this, new CnCNetEventGameResultError("Uncaught exception"));
-            return null;
+            OnGameResultFailed?.Invoke(this, new CnCNetEventGameResultError("Error sending result: " + response.Content != null ? response.Content : "No response"));
         }
+
+        return null;
     }
 
     private void ParseFields(byte[] data)
